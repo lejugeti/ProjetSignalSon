@@ -1,12 +1,21 @@
-function [alpha, beta] = Regularite( signal )
+function [alpha, beta, logN, logF] = Regularite( signal, method )
 % calcule le coefficient de régularité d'un signal
 
 M = size(signal, 2);
 Ns = [13, 17, 21, 27, 35, 47, 59, 77, 99, 135, 189];
 Fs = zeros(size(Ns));
-for i = 1:size(Ns,2)
-   N = Ns(i);
-   Fs(i) = CalculProfilGlobal(signal, M, N);
+
+if(method == 'DFA')
+    for i = 1:size(Ns,2)
+       N = Ns(i);
+       Fs(i) = CalculF(signal, M, N);
+    end
+
+elseif(method == 'DMA')
+      for i = 1:size(Ns,2)
+          N = Ns(i);
+          Fs(i) = CalculFDMA(signal, M, N);
+      end
 end
 
 % calcul du fit pour obtenir le coefficient de régularité alpha

@@ -1,5 +1,6 @@
-function [F] = CalculProfilGlobal( signal, M, N )
+function [F] = CalculF( signal, M, N )
 % calcul du profil global F
+% On calcul pour cela les résidus entre le profil y du signal et le fit x
 
 L = floor(M / N);
 profilY = ProfilY(signal, L*N);
