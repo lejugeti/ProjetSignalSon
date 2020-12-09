@@ -1,5 +1,6 @@
 function [fitEntier] = CalculFit(signal, M, N, L)
-% Calcule et renvoie le fit du profil du signal
+% Calcule et renvoie le fit du profil du signal par des polynômes 
+% de degré 3
 
 profil = ProfilY(signal, M);
 coefs = CalculCoefsProfil(profil, L, N);
