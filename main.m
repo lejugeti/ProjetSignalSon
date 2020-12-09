@@ -188,12 +188,65 @@ plot(profil);
 plot(tendance, 'r');
 hold off
 
+%% représentations du filtre 
 
+clc
+clear all
+close all
+warning('off', 'all');
+
+M = 2001;
+N = 64;
+bb1 = randn(1, M);
+profil = ProfilY(bb1, M);
+
+b = zeros(1, N+1);
+b(1) = 1;
+b(N+1) = -1;
+a = [N, -N];
+
+z = roots(b);
+p = roots(a);
+figure, zplane(b, a);
+
+[h, w] = freqz(b, a, M, 'whole');
+figure, plot(w/pi, 20*log10(abs(h)));
+xlabel('Normalized Frequency (\times\pi rad/sample)')
+ylabel('Magnitude (dB)')
+
+[phi, wPhi] = phasez(b, a, M);
+figure, plot(wPhi, phi);
+
+%plot de la tendance par rapport au profil
+newY = filter(b, a, profil);
+retardPhi = (phi(20) - phi(2)) / (wPhi(20) - wPhi(2));
+tendance = newY(abs(floor(retardPhi)):size(profil,2));
+
+figure,
+hold on
+plot(profil);
+% plot(newY);
+plot(tendance);
+xlabel('Temps en secondes');
+ylabel('Signal');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+hold off
+
+% TF pour voir type de filtre
+
+tf = fft(tendance);
+plot(linspace(-0.5, 0.5, size(tf,2)), fftshift(abs(tf)));
+xlabel('Fréquences normalisées');
+ylabel('Module TF');
+% xticks([-0.5,0,0.5]);
 %% calcul régularité avec DMA
 
 clc
 clear all
 warning('off', 'all');
+close all
 
 M = 2001;
 bb1 = randn(1, M);
@@ -204,9 +257,9 @@ fit1 = polyval([alpha1, beta1], logN1);
 fit2 = polyval([alpha2, beta2], logN2);
 
 hold on;
-plot(logN1, logF1, 'o');
+plot(logN1, logF1, 'or');
 plot(logN1, fit1);
-plot(logN2, logF2, 'o');
+plot(logN2, logF2, 'ob');
 plot(logN2, fit2);
 hold off
 
@@ -250,16 +303,17 @@ clear all
 warning('off', 'all');
 
 M = 2001;
-alphasDFA = zeros(1,50);
-alphasDMA = zeros(1,50);
+nbAlpha = 100;
+alphasDFA = zeros(1,nbAlpha);
+alphasDMA = zeros(1,nbAlpha);
 w = waitbar(0, 'traitement des régularités');
-for i = 1:100
+for i = 1:nbAlpha
     bbCentre = randn(1, M);
     
     alphasDFA(i) = Regularite(bbCentre, 'DFA');
     alphasDMA(i) = Regularite(bbCentre,'DMA');
     
-    waitbar(i/50);
+    waitbar(i/nbAlpha);
 end
 close(w);
 
