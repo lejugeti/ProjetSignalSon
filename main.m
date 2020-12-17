@@ -9,9 +9,18 @@ bb2 = 9 * randn(1,M) + 7;
 
 %% représentations fréquentielles
 
+clc
+clear all
+warning('off', 'all');
 close all
+
+M = 2001;
+
+bb1 = randn(1, M);
+bb2 = 9 * randn(1,M) + 7;
+
 % spectrogramme bb1
-figure,
+figure, 
 subplot(2,1,1);
 plot(bb1);
 xlabel('Temps en secondes');
@@ -19,29 +28,37 @@ ylabel('Intensité signal');
 xlim([0;M]);
 xticks([0,500,1000,1500,2000])
 xticklabels({'0', '0.5', '1', '1.5', '2'});
+xlabel('Temps en secondes');
+ylabel("A");
+title("Représentation bruit blanc centré");
 
 subplot(2,1,2);
-spectrogram(bb1, 64,0, 'yaxis');
+spectrogram(bb1, sqrt(M), 'yaxis');
 xlabel('Temps en secondes');
 ylabel('Frequences');
 xlim([0;M]);
 xticks([0,500,1000,1500,2000])
 xticklabels({'0', '0.5', '1', '1.5', '2'});
 
+
 % spectrogramme bb2
-figure,
+figure, 
 subplot(2,1,1);
 plot(bb2);
 xlim([0;M]);
 xticks([0,500,1000,1500,2000])
 xticklabels({'0', '0.5', '1', '1.5', '2'});
+xlabel('Temps en secondes');
+ylabel("A");
+title("Représentation bruit blanc non-centré");
 
 subplot(2,1,2);
-spectrogram(bb2, 64,0, 'yaxis');
+spectrogram(bb2, sqrt(M), 'yaxis');
 xlabel('Temps en secondes');
 ylabel('Frequences');
 xlim([0;M]);
-xticks([0,500,1000,1500,2000])
+xticks([0,500,1000,1500,2000]);
+xlabel('Temps en secondes');
 xticklabels({'0', '0.5', '1', '1.5', '2'});
 
 %% Etapes DFA
@@ -102,6 +119,7 @@ plot(logN, logF, 'o');
 plot(logN, fit, 'r');
 xlabel('log( N )');
 ylabel('log( F(N) )');
+title("Représentation log-log de F par DFA");
 hold off
 
 %% représentation profil + fit
@@ -121,8 +139,24 @@ coefs = CalculCoefsProfil(profilY, L, N);
 fit = CalculFit(bb1, M, N, L);
 
 figure,
+
+%profil
 subplot(3,1,1), plot(profilY), xlim([0,2001]);
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
+
+% fit
 subplot(3,1,2), plot(fit, 'r'), xlim([0,2001]);
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
+
+% profil + fit
 subplot(3,1,3),
 hold on
 plot(profilY), xlim([0,2001]);
@@ -132,6 +166,11 @@ for l = 1:L
     xline(l*N);
 end
 
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
 hold off
 
 %% DFA statistiques sur la régularité 
@@ -165,27 +204,61 @@ errorbar([mu1, mu2], [sd1, sd2], 'or');
 xlim([0, 3]);
 xticks([1,2]);
 xticklabels({'Bb centré', 'Bb non centré'});
-
+ylabel("Alpha");
+title("Alphas moyens par DFA");
 %% DMA étape par étape
 
 clc
 clear all
 warning('off', 'all');
+close all
 
 M = 2001;
 N = 64;
 bb1 = randn(1, M);
-filtre = ones(1, N) / N;
+
+b = zeros(1, N+1);
+b(1) = 1;
+b(N+1) = -1;
+a = [N, -N];
 
 profil = ProfilY(bb1, M);
-tendance = conv(profil, filtre, 'same');
+tendance = filter(b, a, profil); % tendance décalée à cause du retard de groupe
 
-subplot(3,1,1), plot(profil), xlim([0, 2001]);
-subplot(3,1,2), plot(tendance, 'r'), xlim([0, 2001]);
-subplot(3,1,3), xlim([0, 2001]);
+[phi, wPhi] = phasez(b, a, M); 
+retardPhi = abs(floor((phi(20) - phi(2)) / (wPhi(20) - wPhi(2)))); % dérivée de la phase
+tendanceRecalee = tendance(retardPhi:size(profil,2));
+
+%plot profil seul
+% subplot(3,1,1), plot(profil), xlim([0, 2001]);
+% xlim([0;M]);
+% xticks([0,500,1000,1500,2000])
+% xticklabels({'0', '0.5', '1', '1.5', '2'});
+% ylabel("A");
+% xlabel("Temps (s)");
+
+%plot profil + fit décalé
+subplot(2,1,1), xlim([0, 2001]);
 hold on
 plot(profil);
 plot(tendance, 'r');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
+hold off
+
+%plot profil + fit recalé
+subplot(2,1,2), xlim([0, 2001]);
+hold on
+plot(profil);
+plot(tendanceRecalee, 'r');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
 hold off
 
 %% représentations du filtre 
@@ -196,7 +269,7 @@ close all
 warning('off', 'all');
 
 M = 2001;
-N = 64;
+N = 27;
 bb1 = randn(1, M);
 profil = ProfilY(bb1, M);
 
@@ -211,11 +284,14 @@ figure, zplane(b, a);
 
 [h, w] = freqz(b, a, M, 'whole');
 figure, plot(w/pi, 20*log10(abs(h)));
-xlabel('Normalized Frequency (\times\pi rad/sample)')
-ylabel('Magnitude (dB)')
+xlabel('Pulsation w (\times\pi rad/sample)')
+ylabel('Gain (dB)')
 
 [phi, wPhi] = phasez(b, a, M);
 figure, plot(wPhi, phi);
+ylabel("Phase (rad)");
+xlabel("Pulsation w (\times\pi rad/sample)");
+hold off
 
 %plot de la tendance par rapport au profil
 newY = filter(b, a, profil);
@@ -253,14 +329,13 @@ bb1 = randn(1, M);
 
 [alpha1, beta1, logN1, logF1] = Regularite(bb1, 'DMA');
 fit1 = polyval([alpha1, beta1], logN1);
-[alpha2, beta2, logN2, logF2] = Regularite(bb1, 'DFA');
-fit2 = polyval([alpha2, beta2], logN2);
 
 hold on;
 plot(logN1, logF1, 'or');
 plot(logN1, fit1);
-plot(logN2, logF2, 'ob');
-plot(logN2, fit2);
+ylabel("log(F)");
+xlabel("log(N)");
+title("Représentation log-log de F par DMA");
 hold off
 
 %% DMA statistiques
@@ -294,13 +369,15 @@ errorbar([mu1, mu2], [sd1, sd2], 'or');
 xlim([0, 3]);
 xticks([1,2]);
 xticklabels({'Bb centré', 'Bb non centré'});
-
+ylabel("Alpha");
+title("Alphas moyens par DMA");
 
 %% statistiques DFA/DMA
 
 clc
 clear all
 warning('off', 'all');
+close all
 
 M = 2001;
 nbAlpha = 100;
@@ -327,6 +404,66 @@ errorbar([mu1, mu2], [sd1, sd2], 'or');
 xlim([0, 3]);
 xticks([1,2]);
 xticklabels({'DFA', 'DMA'});
+ylabel("Alpha");
+title("Alphas moyens");
+
+%% spectrogramme signal réel
+
+clc
+clear
+close all
+
+M = 2001;
+data = load('dataEEG2020.mat');
+y = cell2mat(data.dataEEG2020e7(2,1))';
+
+% spectrogramme bb1
+figure,
+subplot(2,1,1);
+plot(y);
+xlabel('Temps en secondes');
+ylabel('Intensité signal');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+
+subplot(2,1,2);
+spectrogram(y, sqrt(M), 'yaxis');
+xlabel('Temps en secondes');
+ylabel('Frequences');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+
+%% comparaison spectrogrammes entre deux états
+
+clc
+clear
+close all
+
+M = 2001;
+data = load('dataEEG2020.mat');
+y1 = cell2mat(data.dataEEG2020e7(1,1))';
+y2 = cell2mat(data.dataEEG2020e7(2,1))';
+
+figure,
+subplot(2,1,1);
+spectrogram(y1 - mean(y1), sqrt(M), 'yaxis');
+xlabel('Temps en secondes');
+ylabel('Fréquences');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+title('Etat 1');
+
+subplot(2,1,2);
+spectrogram(y2 - mean(y2), sqrt(M), 'yaxis');
+xlabel('Temps en secondes');
+ylabel('Frequences');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+title('Etat 2');
 
 %% analyse signaux réels
 
@@ -338,13 +475,14 @@ data = load('dataEEG2020.mat');
 
 %création du dataframe
 alpha = zeros(28, 1);
-electrode = repmat(' ', 28,1);
-method = repmat(' ', 28,1);
-df = table(electrode, method, alpha);
+electrode = repmat(" ", 28,1);
+method = repmat("   ", 28,1);
+etat = repmat(' ', 28,1);
+df = table(electrode, method, etat, alpha);
 % sujet = repmat(' ', 28,1);
-% etat = repmat(' ', 28,1);
-% df = table(sujet, electrode, etat, alpha);
 
+% df = table(sujet, electrode, etat, alpha);
+iTableau = 1;
 
 
 % analyse avec DFA -------------------------------
@@ -360,9 +498,21 @@ for p = 1:nbPhases
     for s = 1:nbSujets
         
         y = cell2mat(data.dataEEG2020e7(p,s))';
-        alphaDFAe1(1, index) = Regularite(y, 'DFA');
+        a = Regularite(y, 'DFA');
+        alphaDFAe1(1, index) = a;
         index = index +1;
-
+        
+        if(p == 1)
+            tempEtat = 'A';
+        else
+            tempEtat = 'B';
+        end
+        
+        df.electrode(iTableau) = "e1";
+        df.method(iTableau) = {'DFA'};
+        df.etat(iTableau) = tempEtat;
+        df.alpha(iTableau) = a;
+        iTableau = iTableau + 1;
     end
     
 end
@@ -375,9 +525,21 @@ for p = 1:nbPhases
         
         % le signal est à transposer car on l'obtient en vecteur colonne
         y = cell2mat(data.dataEEG2020e8(p,s))'; 
-        alphaDFAe2(1, index) = Regularite(y, 'DFA');
+        a = Regularite(y, 'DFA');
+        alphaDFAe2(1, index) = a;
         index = index +1;
-
+        
+        if(p == 1)
+            tempEtat = 'A';
+        else
+            tempEtat = 'B';
+        end
+        
+        df.electrode(iTableau) = "e2";
+        df.method(iTableau) = 'DFA';
+        df.etat(iTableau) = tempEtat;
+        df.alpha(iTableau) = a;
+        iTableau = iTableau + 1;
     end
     
 end
@@ -390,21 +552,33 @@ nbElectrodes = 2;
 nbPhases = size(data.dataEEG2020e7, 1);
 nbSujets = size(data.dataEEG2020e7, 2);
 
-% DFA electrode 1
+% DMA electrode 1
 alphaDMAe1 = zeros(1, nbPhases*nbSujets);
 index = 1;
 for p = 1:nbPhases
     for s = 1:nbSujets
         
         y = cell2mat(data.dataEEG2020e7(p,s))';
-        alphaDMAe1(1, index) = Regularite(y, 'DMA');
+        a = Regularite(y, 'DMA');
+        alphaDMAe1(1, index) = a;
         index = index +1;
         
+        if(p == 1)
+            tempEtat = 'A';
+        else
+            tempEtat = 'B';
+        end
+        
+        df.electrode(iTableau) = "e1";
+        df.method(iTableau) = 'DMA';
+        df.etat(iTableau) = tempEtat;
+        df.alpha(iTableau) = a;
+        iTableau = iTableau + 1;
     end
     
 end
 
-% DFA electrode 2
+% DMA electrode 2
 alphaDMAe2 = zeros(1, nbPhases*nbSujets);
 index = 1;
 for p = 1:nbPhases
@@ -412,9 +586,21 @@ for p = 1:nbPhases
         
         % le signal est à transposer car on l'obtient en vecteur colonne
         y = cell2mat(data.dataEEG2020e8(p,s))'; 
-        alphaDMAe2(1, index) = Regularite(y, 'DMA');
+        a = Regularite(y, 'DMA');
+        alphaDMAe2(1, index) = a;
         index = index +1;
         
+        if(p == 1)
+            tempEtat = 'A';
+        else
+            tempEtat = 'B';
+        end
+        
+        df.electrode(iTableau) = "e2";
+        df.method(iTableau) = 'DMA';
+        df.etat(iTableau) = tempEtat;
+        df.alpha(iTableau) = a;
+        iTableau = iTableau + 1;
     end
     
 end
@@ -451,10 +637,64 @@ xticklabels({'DFAe1', 'DFAe2','DMAe1','DMAe2'});
 
 
 
+display(df);
+%writetable(df, "data_eeg.csv");
 
+%% scatterplots
 
+close all
 
+%e1 DFA
+a = df(df.electrode=="e1" & df.etat=='A' & df.method=="DFA", :).alpha;
+b = df(df.electrode=="e1" & df.etat=='B' & df.method=="DFA", :).alpha;
 
+figure,
+subplot(2,1,1);
+hold on
+    plot(a, "r");
+    plot(b, "g");
+    xlim([0,8]);
+    ylabel("Alphas");
+    title("Regularité DFA e1");
+hold off
 
+%e2 DFA
+a = df(df.electrode=="e2" & df.etat=='A' & df.method=="DFA", :).alpha;
+b = df(df.electrode=="e2" & df.etat=='B' & df.method=="DFA", :).alpha;
 
+subplot(2,1,2);
+hold on
+    plot(a, "r");
+    plot(b, "g");
+    xlim([0,8]);
+    ylabel("Alphas");
+    title("Regularité DFA e2");
+hold off
+
+%e1 DMA
+a = df(df.electrode=="e1" & df.etat=='A' & df.method=="DMA", :).alpha;
+b = df(df.electrode=="e1" & df.etat=='B' & df.method=="DMA", :).alpha;
+
+figure,
+subplot(2,1,1);
+hold on
+    plot(a, "r");
+    plot(b, "g");
+    xlim([0,8]);
+    ylabel("Alphas");
+    title("Regularité DMA e1");
+hold off
+
+%e2 DMA
+a = df(df.electrode=="e2" & df.etat=='A' & df.method=="DMA", :).alpha;
+b = df(df.electrode=="e2" & df.etat=='B' & df.method=="DMA", :).alpha;
+
+subplot(2,1,2);
+hold on
+    plot(a, "r");
+    plot(b, "g");
+    xlim([0,8]);
+    ylabel("Alphas");
+    title("Regularité DMA e2");
+hold off
 
