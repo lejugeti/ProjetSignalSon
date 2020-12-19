@@ -7,7 +7,27 @@ M = 2001;
 bb1 = randn(1, M);
 bb2 = 9 * randn(1,M) + 7;
 
-%% représentations fréquentielles
+%% plot bb
+
+plot(bb1);
+xlabel('Temps (s)');
+ylabel('A');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+title("Représentation bruit blanc centré");
+%% tf bb
+
+tf = fft(bb1(:));
+
+plot(fftshift(abs(tf)));
+xlim([0, 2001]);
+xticks([0, 1000, 2001]);
+xticklabels(["-0.5", "0", "0.5"]);
+ylabel("|TF(y)|");
+xlabel("Fréquences (Hz)");
+
+%% Spectrogrammes
 
 clc
 clear all
@@ -21,46 +41,36 @@ bb2 = 9 * randn(1,M) + 7;
 
 % spectrogramme bb1
 figure, 
-subplot(2,1,1);
-plot(bb1);
-xlabel('Temps en secondes');
-ylabel('Intensité signal');
-xlim([0;M]);
-xticks([0,500,1000,1500,2000])
-xticklabels({'0', '0.5', '1', '1.5', '2'});
-xlabel('Temps en secondes');
-ylabel("A");
-title("Représentation bruit blanc centré");
-
-subplot(2,1,2);
 spectrogram(bb1, sqrt(M), 'yaxis');
 xlabel('Temps en secondes');
 ylabel('Frequences');
 xlim([0;M]);
 xticks([0,500,1000,1500,2000])
 xticklabels({'0', '0.5', '1', '1.5', '2'});
+title("Bruit blanc centré");
 
 
 % spectrogramme bb2
 figure, 
-subplot(2,1,1);
-plot(bb2);
-xlim([0;M]);
-xticks([0,500,1000,1500,2000])
-xticklabels({'0', '0.5', '1', '1.5', '2'});
-xlabel('Temps en secondes');
-ylabel("A");
-title("Représentation bruit blanc non-centré");
-
-subplot(2,1,2);
-spectrogram(bb2, sqrt(M), 'yaxis');
+spectrogram(bb2 - mean(bb2), sqrt(M), 'yaxis');
 xlabel('Temps en secondes');
 ylabel('Frequences');
 xlim([0;M]);
 xticks([0,500,1000,1500,2000]);
 xlabel('Temps en secondes');
 xticklabels({'0', '0.5', '1', '1.5', '2'});
+title("Bruit blanc non-centré");
 
+% spectrogramme bb2 recentré
+figure, 
+spectrogram(bb2 - mean(bb2), sqrt(M), 'yaxis');
+xlabel('Temps en secondes');
+ylabel('Frequences');
+xlim([0;M]);
+xticks([0,500,1000,1500,2000]);
+xlabel('Temps en secondes');
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+title("Bruit blanc recentré");
 %% Etapes DFA
 
 clc
@@ -119,7 +129,8 @@ plot(logN, logF, 'o');
 plot(logN, fit, 'r');
 xlabel('log( N )');
 ylabel('log( F(N) )');
-title("Représentation log-log de F par DFA");
+title("Représentation des log de F par DFA");
+text(logN(9), logF(9), sprintf("   alpha = %.3f", alpha));
 hold off
 
 %% représentation profil + fit
@@ -131,7 +142,7 @@ warning('off', 'all');
 M = 2001;
 bb1 = randn(1, M);
 bb2 = 9 * randn(1,M) + 7;
-N = 189;
+N = 64;
 L = floor(M/N);
 
 profilY = ProfilY(bb1, M);
@@ -173,6 +184,38 @@ ylabel("A");
 xlabel("Temps (s)");
 hold off
 
+% comparaison fit pour N différents
+
+profil = ProfilY(bb1, M);
+fit1 = CalculFit(bb1, M, 65, floor(M/65));
+fit2 = CalculFit(bb1, M, 189, floor(M/189));
+
+figure,
+subplot(2,1,1),
+hold on
+plot(profil), xlim([0,2001]);
+plot(fit1, 'r');
+
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
+title("Tendance avec N = 65");
+hold off
+
+subplot(2,1,2),
+hold on
+plot(profil), xlim([0,2001]);
+plot(fit2, 'r');
+
+xlim([0;M]);
+xticks([0,500,1000,1500,2000])
+xticklabels({'0', '0.5', '1', '1.5', '2'});
+ylabel("A");
+xlabel("Temps (s)");
+title("Tendance avec N = 189");
+hold off
 %% DFA statistiques sur la régularité 
 
 clc
@@ -335,7 +378,8 @@ plot(logN1, logF1, 'or');
 plot(logN1, fit1);
 ylabel("log(F)");
 xlabel("log(N)");
-title("Représentation log-log de F par DMA");
+title("Représentation des log de F par DMA");
+text(logN1(9), logF1(9), sprintf("   alpha = %.3f", alpha1));
 hold off
 
 %% DMA statistiques
@@ -407,7 +451,7 @@ xticklabels({'DFA', 'DMA'});
 ylabel("Alpha");
 title("Alphas moyens");
 
-%% spectrogramme signal réel
+%%  TF + spectrogramme signal réel
 
 clc
 clear
@@ -417,9 +461,10 @@ M = 2001;
 data = load('dataEEG2020.mat');
 y = cell2mat(data.dataEEG2020e7(2,1))';
 
-% spectrogramme bb1
+
+% plot signal 
 figure,
-subplot(2,1,1);
+subplot(3,1,1);
 plot(y);
 xlabel('Temps en secondes');
 ylabel('Intensité signal');
@@ -427,8 +472,20 @@ xlim([0;M]);
 xticks([0,500,1000,1500,2000])
 xticklabels({'0', '0.5', '1', '1.5', '2'});
 
-subplot(2,1,2);
-spectrogram(y, sqrt(M), 'yaxis');
+% TF
+tf = fft(y);
+
+subplot(3,1,2);
+plot(fftshift(abs(tf)));
+xlabel('Fréquences normalisées');
+ylabel('|TF(y)|');
+xlim([0;M]);
+xticks([0,1000,2000])
+xticklabels({'-0.5', '0', '0.5'});
+
+% spectrogram
+subplot(3,1,3);
+spectrogram(y - mean(y), sqrt(M), 'yaxis');
 xlabel('Temps en secondes');
 ylabel('Frequences');
 xlim([0;M]);
@@ -638,7 +695,7 @@ xticklabels({'DFAe1', 'DFAe2','DMAe1','DMAe2'});
 
 
 display(df);
-%writetable(df, "data_eeg.csv");
+% writetable(df, "data_eeg.csv");
 
 %% scatterplots
 
@@ -653,9 +710,11 @@ subplot(2,1,1);
 hold on
     plot(a, "r");
     plot(b, "g");
+    yline(0.85, 'p');
     xlim([0,8]);
     ylabel("Alphas");
     title("Regularité DFA e1");
+    legend("e1 etat A", "e1 etat B");
 hold off
 
 %e2 DFA
@@ -669,6 +728,7 @@ hold on
     xlim([0,8]);
     ylabel("Alphas");
     title("Regularité DFA e2");
+    legend("e2 etat A", "e2 etat B");
 hold off
 
 %e1 DMA
@@ -683,6 +743,7 @@ hold on
     xlim([0,8]);
     ylabel("Alphas");
     title("Regularité DMA e1");
+    legend("e1 etat A", "e1 etat B");
 hold off
 
 %e2 DMA
@@ -696,5 +757,6 @@ hold on
     xlim([0,8]);
     ylabel("Alphas");
     title("Regularité DMA e2");
+    legend("e2 etat A", "e2 etat B");
 hold off
 
